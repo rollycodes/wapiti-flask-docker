@@ -4,10 +4,20 @@ import os
 from datetime import datetime
 import threading
 import sys
+import requests
 
 app = Flask(__name__)
 
-def run_scan(domain, report_dir):
+
+def notify_callback(domain, url, report_dir):
+    payload = {"domain": domain, "report_directory": report_dir}
+    try:
+        response = requests.post(url, json=payload)
+        print(f"Notification sent: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send notification: {e}")
+
+def run_scan(domain, report_dir, callback_url):
 
     # Path for JSON output
     output_path = os.path.join(report_dir, "report.json")
@@ -38,6 +48,7 @@ def run_scan(domain, report_dir):
             f.write(errors)
 
     if process.wait() == 0:
+        notify_callback(domain, callback_url, report_dir)
         print("Scan completed successfully")  # This will now appear in Docker logs
     else:
         print(f"Scan failed")  # Error messages are already logged
@@ -48,6 +59,7 @@ def scan_website():
     # Extract domain from the POST request
     content = request.json
     domain = content['domain']
+    callback_url = content.get('callback_url', '')  # Default to an empty string if not provided
     domain_folder = domain.replace("http://", "").replace("https://", "").replace("www.", "").replace("/", "_")
     
     # Current timestamp for uniqueness
@@ -58,10 +70,23 @@ def scan_website():
     os.makedirs(report_dir, exist_ok=True)
     
     # Start the scan in a new thread
-    thread = threading.Thread(target=run_scan, args=(domain, report_dir))
+    thread = threading.Thread(target=run_scan, args=(domain, report_dir, callback_url))
     thread.start()
     
     return jsonify({"message": "Scan started", "report_location": f'{report_dir}/report.json'}), 200
+
+
+@app.route('/get-report', methods=['POST'])
+def get_report():
+    content = request.json
+    report_dir = content['report_directory']  # Directory name from the notification
+    try:
+        with open(os.path.join(report_dir, "report.json"), 'r') as file:
+            report_data = file.read()
+        return jsonify({"report": report_data}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
