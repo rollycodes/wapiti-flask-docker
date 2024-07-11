@@ -5,6 +5,7 @@ from datetime import datetime
 import threading
 import sys
 import requests
+import json
 
 app = Flask(__name__)
 
@@ -80,10 +81,11 @@ def scan_website():
 def get_report():
     content = request.json
     report_dir = content['report_directory']  # Directory name from the notification
+    report_path = os.path.join(report_dir, "report.json")
     try:
-        with open(os.path.join(report_dir, "report.json"), 'r') as file:
-            report_data = file.read()
-        return jsonify({"report": report_data}), 200
+        with open(report_path, 'r') as file:
+            report_data = json.load(file)  # This loads the JSON content into a Python dictionary
+        return jsonify(report_data)  # Directly return the Python dictionary as a JSON response
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
