@@ -61,6 +61,7 @@ pyOpenSSL
 pyparsing
 pyperclip
 pyspnego
+requests
 ruamel.yaml
 ruamel.yaml.clib
 six
@@ -75,6 +76,7 @@ tld
 tls_parser
 tornado
 typing_extensions
+urllib3
 urwid
 Werkzeug
 wsproto
