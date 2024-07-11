@@ -24,4 +24,4 @@ EXPOSE 5000
 ENV NAME Wapiti
 
 # Run app.py when the container launches
-CMD ["python", "app.py"]
+CMD ["gunicorn", "--workers", "4", "--bind", "0.0.0.0:5000", "app:app"]
